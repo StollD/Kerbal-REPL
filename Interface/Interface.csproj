@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -47,12 +48,6 @@
   <ItemGroup>
     <Compile Include="DelegateReportPrinter.cs" />
     <Compile Include="Interface.cs" />
-    <Compile Include="..\Shell\InteractiveBaseShell.cs">
-        <Link>InteractiveBaseShell.cs</Link>
-    </Compile>
-    <Compile Include="..\Shell\LineEditor.cs">
-        <Link>LineEditor.cs</Link>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

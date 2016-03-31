@@ -18,7 +18,6 @@ using System.ComponentModel;
 
 /// Mono
 using Mono.CSharp;
-using Mono.Terminal;
 
 namespace KerbalREPL
 {
@@ -47,11 +46,6 @@ namespace KerbalREPL
         /// Whether the console is a dumb terminal
         /// </summary>
         public static Boolean is_unix = false;
-
-        /// <summary>
-        /// The Line Editor for the shell
-        /// </summary>
-        public static LineEditor editor;
 
         /// <summary>
         /// A dummy Evaluator, responsible for getting autocompletes
@@ -91,7 +85,7 @@ namespace KerbalREPL
 
             /// Create the Evaluator
             evaluator = new Evaluator(new CompilerContext(new CompilerSettings() { Unsafe = true }, new StreamReportPrinter(new StreamWriter(new MemoryStream()))));
-            evaluator.InteractiveBaseClass = typeof(InteractiveBaseShell);
+            evaluator.InteractiveBaseClass = typeof(InteractiveBase);
             evaluator.DescribeTypeExpressions = true;
             evaluator.WaitOnTask = true;
             LoadStartupFiles();
@@ -117,11 +111,16 @@ namespace KerbalREPL
                 Int32 count = client.Client.Receive(buffer);
                 buffer = buffer.Take(count).ToArray();
                 String result = Encoding.UTF8.GetString(buffer);
-                locked = false;
                 if (result == "\x06" + "_NONO_" + "\x06")
+                {
+                    Thread.Sleep(500);
+                    locked = false;
                     continue;
+                }
                 p(Console.Out, result);
                 Console.WriteLine();
+                Thread.Sleep(500);
+                locked = false;
             }
         }
 
@@ -143,18 +142,6 @@ namespace KerbalREPL
         /// </summary>
         private static void SetupConsole()
         {
-            editor = new LineEditor("csharp", 300)
-            {
-                HeuristicsMode = "csharp"
-            };
-            InteractiveBaseShell.Editor = editor;
-            /** editor.AutoCompleteEvent += delegate (String s, Int32 pos) 
-            {
-                String prefix = null;
-                String complete = s.Substring(0, pos);
-                String[] completions = evaluator.GetCompletions(complete, out prefix);
-                return new LineEditor.Completion(prefix, completions);
-            }; **/
             Console.CancelKeyPress += ConsoleInterrupt;
             Console.InputEncoding = Console.OutputEncoding = Encoding.UTF8;
         }
@@ -212,10 +199,17 @@ namespace KerbalREPL
             /// Load the Assemblies
             foreach (String file in asm)
             {
-                if (file.Contains("mscorlib") || file.Contains("Steamworks")) /// Steamworks throws BadImageFormatException while loading...
+                if (file.Contains("mscorlib") || file.Contains("Steamworks") || file.Contains("System.Core")) /// Steamworks throws BadImageFormatException while loading...
                     continue;
-                Assembly assembly = Assembly.LoadFrom(file);
-                evaluator.ReferenceAssembly(assembly);
+                try
+                {
+                    Assembly assembly = Assembly.LoadFrom(file);
+                    evaluator.ReferenceAssembly(assembly);
+                }
+                catch
+                {
+                    /// Something with Strong name is kidding me as it seems
+                }
             }
         }
 
@@ -238,12 +232,11 @@ namespace KerbalREPL
                 expr = Evaluate(expr, out locked);
                 while(true)
                 {
+                    Thread.Sleep(500);
                     if (!locked)
                         break;
-                    Thread.Sleep(1000);
                 }
             }
-            editor.SaveHistory();
             Console.CancelKeyPress -= ConsoleInterrupt;
             return 0;
         }

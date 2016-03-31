@@ -68,14 +68,16 @@ namespace KerbalREPL
                 Byte[] buffer = Encoding.UTF8.GetBytes(msg);
                 client.Client.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, (IAsyncResult result_) => Send(result_, client), null);
             }, this)));
-            evaluator.InteractiveBaseClass = typeof(InteractiveBaseShell);
+            evaluator.InteractiveBaseClass = typeof(InteractiveBase);
             evaluator.DescribeTypeExpressions = true;
             evaluator.WaitOnTask = true;
-            AppDomain.CurrentDomain.GetAssemblies().ToList().ForEach(a => { if (!a.Location.Contains("mscorlib") && !a.Location.Contains("System.Core")) evaluator.ReferenceAssembly(a); });
+            AppDomain.CurrentDomain.GetAssemblies().ToList().ForEach(a => { if (!a.Location.Contains("mscorlib") && !a.Location.Contains("System.Core") && !a.Location.Contains("Steamworks")) evaluator.ReferenceAssembly(a); });
 
             /// Create the TcpServer
             server = new TcpListener(IPAddress.Any, port);
-            server.Start(4);
+            server.Server.ReceiveTimeout = 1000;
+            server.Server.SendTimeout = 1000;
+            server.Start();
             Debug.Log("[REPL] TcpServer ready on port " + port);
 
             /// Accept Clients
@@ -120,7 +122,7 @@ namespace KerbalREPL
             {
                 String asm = String.Join(";", SortByDependencies().Select(a => a.Location).ToArray());
                 Byte[] asm_b = Encoding.UTF8.GetBytes(asm);
-                client.Client.BeginSend(asm_b, 0, asm_b.Length, SocketFlags.None, (IAsyncResult result_) => { Debug.Log(command); Send(result_, client); }, null);
+                client.Client.BeginSend(asm_b, 0, asm_b.Length, SocketFlags.None, (IAsyncResult result_) => { Debug.Log(asm); Send(result_, client); }, null);
             }
             else if (command == "\x06" + "_INTERRUPT_" + "\x06")
             {
